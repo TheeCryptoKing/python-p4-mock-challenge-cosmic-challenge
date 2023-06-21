@@ -31,11 +31,21 @@ def home():
 
 # POST /missions
 # add patch, delete
+
+# TO order json data(dict)
+# od = OrderedDict()
+# od['a'] = 1
+# od['b'] = 2
+# od['c'] = 3
+# od['d'] = 4
+# when querying for data use json.dumps()
 class Scientists(Resource):
     def get(self):
-        scientists = [s.to_dict() for s in Scientist.query.all()]
-        # when returing data can do [m.to_dict(only=('id', 'name', 'field_of_study', 'avatar')) for s in Scientist.query.all()]
-        # when using serialzie rules
+        
+        ############################### serialize_only 
+        # scientists = [s.to_dict() for s in Scientist.query.all()]
+        ############################## serialize_rules
+        scientists = [s.to_dict(only=('id', 'name', 'field_of_study', 'avatar')) for s in Scientist.query.all()]
         
         if scientists:
             return scientists, 200 
@@ -64,9 +74,12 @@ api.add_resource(Scientists, '/scientists')
 
 class ScientistsId(Resource):
     def get(self, id):
+        
+        ####################### serialize_only & serialize_rules
         laddies = Scientist.query.filter_by(id=id).first()
+        
         if laddies:
-            return laddies.to_dict(), 200
+            return laddies.to_dict(only=('id', 'name', 'field_of_study', 'avatar','scientist_missions')), 200
         else:
             return 'Fix ScientistsId GET '
         # Working serialzie not ordered properly, how do i? 
@@ -76,6 +89,7 @@ class ScientistsId(Resource):
         data = request.get_json()
         laddies = Scientist.query.filter_by(id=id).first()
         #  dont understand how this works
+        
         if not laddies:
             return ({"error": "404 not found"}, 404)
         else:
@@ -96,14 +110,18 @@ class ScientistsId(Resource):
             return make_response({}, 204)
         else: 
             return ({"error": "404 not found"}, 404)
-        # not working
+        # working
         # pass
     
 api.add_resource(ScientistsId, '/scientists/<int:id>')
 
 class Planets(Resource):
     def get(self):
-        planets = [p.to_dict() for p in Planet.query.all()]
+        ##################### serialzie_only
+        # planets = [p.to_dict() for p in Planet.query.all()]
+        ##################### serilaize_rules
+        planets = [p.to_dict(only=('id', 'name', 'distance_from_earth', 'nearest_star', 'image')) for p in Planet.query.all()]
+        
         # need if or try for validation 
         return planets, 200 
         # working
@@ -113,7 +131,10 @@ api.add_resource(Planets, '/planets')
 
 class Missions(Resource):
     def get(self):
-        missions = [m.to_dict() for m in Mission.query.all()]
+        ################## serialize only 
+        # missions = [m.to_dict() for m in Mission.query.all()]
+        ################# serialize rules
+        missions = [m.to_dict(only=('name', 'scientist_id', 'planet_id')) for m in Mission.query.all()]
         return missions, 200
         # working
         # pass
@@ -121,29 +142,22 @@ class Missions(Resource):
     
     def post(self):
         data = request.get_json()
+        print("Received data:", data)
         try:
             new_mission = Mission(
-                name = data.get('name'),
-                scientist_id = data.get('scientist_id'),
-                planet_id = data.get('planet_id')
+                name = data.get("name"),
+                scientist_id = data.get("scientist_id"),
+                planet_id = data.get("planet_id")
             )
             db.session.add(new_mission)
             db.session.commit()
-            # How do i return planet???
-            # response = make_response(
-            #     planetOfMission = Planet.query.filter(Mission.planet_id == Planet.id)
-            # )
             # i do want to know how to retrun plant data from planet_id
-            
             return new_mission.to_dict(), 201
         except:
-            return {"error": "400: Validation error"}
-        # working but need to return planet
-        # pass
-    
+            return ({"error": "400: Validation error"}, 404)
+        # working with serialize_only
+        # not working with serialize_rules 
 api.add_resource(Missions, '/missions')
-
-
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
